@@ -11,31 +11,105 @@
         h1 { color: #00ff9d; text-align: center; }
         h2 { margin-top: 40px; color: #fff; }
         p { line-height: 1.8; color: #ddd; }
+        .lang-toggle {
+            position: absolute; top: 25px; right: 25px;
+            background: #2a2a2a; color: #ccc;
+            border: 2px solid #555; padding: 10px 24px;
+            border-radius: 50px; cursor: pointer; font-size: 1.05rem;
+            display: flex; align-items: center; gap: 12px;
+            transition: all 0.3s ease;
+        }
+        .lang-toggle:hover { background: #333; border-color: #00ff9d; }
+        .toggle-option { margin: 0 4px; transition: color 0.2s; }
+        .lang-toggle .active { color: #00ff9d; font-weight: bold; }
+        .lang-zh, .lang-en { display: none; }
+        body[data-lang="zh"] .lang-zh { display: block; }
+        body[data-lang="en"] .lang-en { display: block; }
         footer { margin-top: 80px; text-align: center; font-size: 1rem; color: #888; }
         footer a { color: #00ff9d; text-decoration: none; }
     </style>
 </head>
-<body>
+<body data-lang="zh">
+    <button class="lang-toggle" onclick="toggleLang()">
+        <span class="toggle-option toggle-zh">中文</span> |
+        <span class="toggle-option toggle-en">English</span>
+    </button>
+
     <div class="container">
         <img src="logo.png" alt="VidRestore Logo" class="logo">
-        <h1>VidRestore 隐私政策</h1>
-        <p><strong>最后更新：</strong>2026 年 3 月</p>
-        <p>VidRestore 是一款<strong>完全离线</strong>运行的 macOS 桌面应用。我们高度重视您的隐私保护。</p>
-        <h2>1. 我们不收集任何数据</h2>
-        <p>软件完全在您的本地 Mac 上运行，不需要联网（激活除外）。</p>
-        <h2>2. 激活与 License Key</h2>
-        <p>首次激活时，我们仅记录设备的硬件指纹（用于验证 License 有效性），不包含任何可识别个人身份的信息。</p>
-        <h2>3. 第三方服务</h2>
-        <p>除 Paddle（支付）和 Supabase（License 验证）外，我们不使用任何其他第三方服务。</p>
-        <p>如对隐私政策有任何疑问，请随时联系 support@vidrestore.app</p>
+
+        <!-- 中文内容 -->
+        <div class="lang-zh">
+            <h1>隐私政策</h1>
+            <p><strong>最后更新：</strong>2026 年 3 月</p>
+            <p>VidRestore 是一款<strong>完全离线</strong>运行的 macOS 桌面应用。我们高度重视您的隐私保护。</p>
+
+            <h2>1. 我们不收集任何数据</h2>
+            <p>软件完全在您的本地 Mac 上运行，不需要联网（激活除外）。</p>
+
+            <h2>2. 激活与 License Key</h2>
+            <p>首次激活时，我们仅记录设备的硬件指纹（用于验证 License 有效性），不包含任何可识别个人身份的信息。</p>
+
+            <h2>3. 第三方服务</h2>
+            <p>除 Paddle（支付）和 Supabase（License 验证）外，我们不使用任何其他第三方服务。</p>
+
+            <p>如对隐私政策有任何疑问，请随时联系 support@vidrestore.app</p>
+        </div>
+
+        <!-- 英文内容 -->
+        <div class="lang-en">
+            <h1>Privacy Policy</h1>
+            <p><strong>Last updated:</strong> March 2026</p>
+            <p>VidRestore is a <strong>fully offline</strong> macOS desktop application. We take your privacy extremely seriously.</p>
+
+            <h2>1. We collect no data</h2>
+            <p>The software runs entirely on your local Mac and requires no internet connection (except for activation).</p>
+
+            <h2>2. Activation & License Key</h2>
+            <p>During initial activation, we only record a hardware fingerprint for license validation. No personally identifiable information is collected.</p>
+
+            <h2>3. Third-party services</h2>
+            <p>We only use Paddle (for payments) and Supabase (for license validation). No other third-party services are used.</p>
+
+            <p>Any questions? Contact support@vidrestore.app</p>
+        </div>
 
         <footer>
-            <footer>
-                <a href="/index.html">返回首页</a> |
-                <a href="/pricing.html">定价</a> |
-                <a href="/terms.html">服务条款</a>
-            </footer>
+            <a href="/index.html" class="lang-zh">返回首页</a>
+            <a href="/index.html" class="lang-en">Back to Home</a> |
+            <a href="/terms.html" class="lang-zh">服务条款</a>
+            <a href="/terms.html" class="lang-en">Terms</a> |
+            <a href="/pricing.html" class="lang-zh">定价</a>
+            <a href="/pricing.html" class="lang-en">Pricing</a>
         </footer>
     </div>
+
+    <script>
+        function toggleLang() {
+            const current = document.body.getAttribute('data-lang');
+            const newLang = current === 'zh' ? 'en' : 'zh';
+            document.body.setAttribute('data-lang', newLang);
+            localStorage.setItem('preferredLang', newLang);
+
+            document.querySelectorAll('.lang-toggle .toggle-option').forEach(span => {
+                span.classList.toggle('active',
+                    (newLang === 'zh' && span.classList.contains('toggle-zh')) ||
+                    (newLang === 'en' && span.classList.contains('toggle-en'))
+                );
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('preferredLang') || 'zh';
+            document.body.setAttribute('data-lang', savedLang);
+
+            document.querySelectorAll('.lang-toggle .toggle-option').forEach(span => {
+                span.classList.toggle('active',
+                    (savedLang === 'zh' && span.classList.contains('toggle-zh')) ||
+                    (savedLang === 'en' && span.classList.contains('toggle-en'))
+                );
+            });
+        });
+    </script>
 </body>
 </html>
