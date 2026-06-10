@@ -71,6 +71,16 @@
     </div>
 
     <script>
+        // 自动处理 Paddle 支付跳转
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const txn = params.get('_ptxn') || params.get('txn');
+
+            if (txn) {
+                // 有支付订单参数时，跳转到 checkout 页面
+                window.location.href = '/checkout?_ptxn=' + txn;
+            }
+        })();
         function toggleLang() {
             const current = document.body.getAttribute('data-lang');
             const newLang = current === 'zh' ? 'en' : 'zh';
