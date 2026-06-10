@@ -9,6 +9,7 @@
     { "source": "/pricing",   "destination": "/pricing.html" },
     { "source": "/pricing/",  "destination": "/pricing.html" },
     { "source": "/refund-policy",   "destination": "/refund-policy.html" },
-    { "source": "/refund-policy/",  "destination": "/refund-policy.html" }
+    { "source": "/refund-policy/",  "destination": "/refund-policy.html" },
+    { "source": "/checkout",   "destination": "/checkout.html" }
   ]
 }

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正在打开支付页面 | VidRestore</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #0f0f0f;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 520px;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .logo {
+            width: 120px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+        .status {
+            font-size: 1.15rem;
+            color: #ccc;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #333;
+            border-top-color: #00ff9d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            color: #ff6b6b;
+            background: #2a1f1f;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .btn {
+            display: inline-block;
+            background: #00ff9d;
+            color: #000;
+            font-size: 1rem;
+            padding: 12px 32px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background: #00cc7a;
+        }
+        .lang-toggle {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            background: #2a2a2a;
+            color: #ccc;
+            border: 2px solid #555;
+            padding: 8px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body data-lang="zh">
+    <!-- 语言切换 -->
+    <button class="lang-toggle" onclick="toggleLang()">
+        <span class="toggle-zh">中文</span> | <span class="toggle-en">EN</span>
+    </button>
+
+    <div class="container">
+        <img src="logo.png" alt="VidRestore" class="logo">
+
+        <!-- 中文内容 -->
+        <div class="lang-zh">
+            <h1>正在打开支付页面...</h1>
+            <div class="status">
+                请稍候，Paddle 支付窗口即将弹出。<br>
+                如果长时间未响应，请刷新页面重试。
+            </div>
+        </div>
+
+        <!-- 英文内容 -->
+        <div class="lang-en">
+            <h1>Opening Checkout...</h1>
+            <div class="status">
+                Please wait while we open the Paddle payment window.<br>
+                If nothing happens, please refresh the page.
+            </div>
+        </div>
+
+        <div class="loading" id="loading"></div>
+
+        <div id="error-box" class="error" style="display: none;">
+            <div class="lang-zh">未检测到支付订单信息，请返回软件重新发起支付。</div>
+            <div class="lang-en">No transaction information detected. Please return to the app and try again.</div>
+            <a href="/" class="btn" style="margin-top: 16px; display: inline-block;">返回首页</a>
+        </div>
+    </div>
+
+    <!-- Paddle.js v2 -->
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    <script>
+        // ==================== Paddle 初始化 ====================
+        // 请替换成你自己的 Client-side token
+        Paddle.Initialize({
+            token: 'live_aeb63ceea37fde355ee1ccf6aef'   // ← 必须修改
+        });
+
+        function getTransactionId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('_ptxn') || params.get('txn') || params.get('transaction_id');
+        }
+
+        function showError() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error-box').style.display = 'block';
+        }
+
+        function openCheckout(transactionId) {
+            try {
+                Paddle.Checkout.open({
+                    transactionId: transactionId,
+                    // 可选：设置成功/关闭回调
+                    successCallback: () => {
+                        console.log('支付成功');
+                    },
+                    closeCallback: () => {
+                        console.log('用户关闭支付窗口');
+                    }
+                });
+            } catch (e) {
+                console.error('打开支付窗口失败:', e);
+                showError();
+            }
+        }
+
+        // ==================== 页面加载逻辑 ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            const transactionId = getTransactionId();
+
+            if (!transactionId) {
+                showError();
+                return;
+            }
+
+            // 延迟一点点打开支付窗口，让用户看到加载状态
+            setTimeout(() => {
+                openCheckout(transactionId);
+            }, 800);
+        });
+
+        // ==================== 语言切换 ====================
+        function toggleLang() {
+            const current = document.body.getAttribute('data-lang');
+            const newLang = current === 'zh' ? 'en' : 'zh';
+            document.body.setAttribute('data-lang', newLang);
+            localStorage.setItem('preferredLang', newLang);
+        }
+
+        // 初始化语言
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('preferredLang') || 'zh';
+            document.body.setAttribute('data-lang', savedLang);
+        });
+    </script>
+</body>
+</html>
