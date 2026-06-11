@@ -120,7 +120,19 @@
             margin: 20px 0;
             border-left: 4px solid #ffaa00;
         }
-        .hidden { display: none !important; }
+
+        /* ==================== 关键：严格的语言切换 CSS ==================== */
+        .lang-zh,
+        .lang-en {
+            display: none;
+        }
+        body[data-lang="zh"] .lang-zh {
+            display: block;
+        }
+        body[data-lang="en"] .lang-en {
+            display: block;
+        }
+        /* ============================================================ */
     </style>
 </head>
 <body data-lang="zh">
@@ -134,7 +146,7 @@
     <div class="container">
         <img src="logo.png" alt="VidRestore" class="logo">
 
-        <!-- 中文内容 -->
+        <!-- ==================== 初始内容（中英文严格分离） ==================== -->
         <div class="lang-zh">
             <h1 id="title-zh">正在打开支付页面...</h1>
             <div class="status" id="status-zh">
@@ -143,7 +155,6 @@
             </div>
         </div>
 
-        <!-- 英文内容 -->
         <div class="lang-en">
             <h1 id="title-en">Opening Checkout...</h1>
             <div class="status" id="status-en">
@@ -164,24 +175,24 @@
 
         <div class="loading" id="loading"></div>
 
-        <!-- 成功状态 -->
+        <!-- ==================== 成功状态（中英文分离） ==================== -->
         <div id="success-box" class="success" style="display: none;">
             <div class="lang-zh">
                 <h2 style="margin-top:0; color:#00ff9d;">✅ 支付成功！</h2>
                 <p>感谢您的支持！VidRestore 已为您激活终身版授权。</p>
                 <p style="font-size:0.95rem; color:#aaa;">请关闭此标签页，返回 VidRestore 应用程序。<br>
-                应用会在后台自动检测并更新授权状态（或手动点击「我已支付 - 立即验证」）。</p>
+                应用会在后台自动检测并更新授权状态。</p>
             </div>
             <div class="lang-en">
                 <h2 style="margin-top:0; color:#00ff9d;">✅ Payment Successful!</h2>
                 <p>Thank you for your support! VidRestore lifetime license has been activated.</p>
                 <p style="font-size:0.95rem; color:#aaa;">Please close this tab and return to the VidRestore app.<br>
-                The app will automatically detect and activate your license (or click "I have paid - Verify now").</p>
+                The app will automatically detect and activate your license.</p>
             </div>
             <button class="btn" onclick="goToHome()">返回首页 / Return to Home</button>
         </div>
 
-        <!-- 关闭/取消状态 -->
+        <!-- ==================== 关闭状态（中英文分离） ==================== -->
         <div id="closed-box" class="error" style="display: none;">
             <div class="lang-zh">
                 <p><strong>支付窗口已关闭。</strong></p>
@@ -206,10 +217,8 @@
     <!-- Paddle.js v2 -->
     <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
     <script>
-        // ==================== Paddle 初始化 ====================
-        // TODO: 替换成你自己的 Client-side token（从 Paddle Dashboard 获取）
         Paddle.Initialize({
-            token: 'live_aeb63ceea37fde355ee1ccf6aef'   // ← 必须修改为真实 token
+            token: 'live_aeb63ceea37fde355ee1ccf6aef'   // ← 替换为你的真实 Client-side token
         });
 
         let checkoutOpened = false;
@@ -220,42 +229,37 @@
             return params.get('_ptxn') || params.get('txn') || params.get('transaction_id');
         }
 
+        // 专门隐藏初始内容（标题 + 状态 + 警告 + loading）
         function hideInitialContent() {
-            // 隐藏原始标题和状态文字 + 警告
-            document.querySelectorAll('.lang-zh, .lang-en').forEach(el => {
-                if (!el.id || (!el.id.includes('success') && !el.id.includes('closed') && !el.id.includes('error'))) {
-                    // 只隐藏初始内容区域
-                }
-            });
-            const statusEls = document.querySelectorAll('.status');
-            statusEls.forEach(el => el.style.display = 'none');
-            const warning = document.querySelector('.warning');
-            if (warning) warning.style.display = 'none';
             const loading = document.getElementById('loading');
             if (loading) loading.style.display = 'none';
+
+            // 隐藏初始的标题和状态文字
+            document.querySelectorAll('#title-zh, #title-en, #status-zh, #status-en').forEach(el => {
+                el.style.display = 'none';
+            });
+
+            // 隐藏警告
+            document.querySelectorAll('.warning').forEach(el => {
+                el.style.display = 'none';
+            });
         }
 
         function showError() {
             hideInitialContent();
             document.getElementById('error-box').style.display = 'block';
-            document.getElementById('title-zh').textContent = '支付页面加载失败';
-            document.getElementById('title-en').textContent = 'Checkout failed to load';
         }
 
         function showSuccess() {
             paymentCompleted = true;
             hideInitialContent();
             document.getElementById('success-box').style.display = 'block';
-            document.getElementById('title-zh').textContent = '支付已完成';
-            document.getElementById('title-en').textContent = 'Payment completed';
         }
 
         function showClosed() {
             if (paymentCompleted) return;
             hideInitialContent();
             document.getElementById('closed-box').style.display = 'block';
-            document.getElementById('title-zh').textContent = '支付已取消';
-            document.getElementById('title-en').textContent = 'Payment cancelled';
         }
 
         function goToHome() {
@@ -268,43 +272,28 @@
                 Paddle.Checkout.open({
                     transactionId: transactionId,
                     successCallback: (data) => {
-                        console.log('✅ Paddle 支付成功回调', data);
+                        console.log('✅ Paddle payment success', data);
                         showSuccess();
                     },
                     closeCallback: (data) => {
-                        console.log('Paddle 支付窗口关闭', data);
-                        // 立即尝试切换状态（去掉不必要的延迟）
-                        if (!paymentCompleted) {
-                            showClosed();
-                        }
+                        console.log('Paddle checkout closed', data);
+                        // 立即响应关闭行为
+                        showClosed();
                     }
                 });
             } catch (e) {
-                console.error('打开支付窗口失败:', e);
-                // 如果是已完成订单，显示更友好的提示
-                const msg = (e && e.message) ? e.message.toLowerCase() : '';
+                console.error('Failed to open Paddle checkout:', e);
+                const msg = e && e.message ? e.message.toLowerCase() : '';
                 if (msg.includes('completed') || msg.includes('already') || msg.includes('closed')) {
-                    document.getElementById('loading').style.display = 'none';
-                    const box = document.getElementById('closed-box');
-                    box.style.display = 'block';
-                    box.innerHTML = `
-                        <div class="lang-zh">
-                            <p><strong>此订单已完成支付或已关闭。</strong></p>
-                            <p style="font-size:0.95rem;">请返回 VidRestore 应用验证激活状态。</p>
-                        </div>
-                        <div class="lang-en">
-                            <p><strong>This order has already been completed or closed.</strong></p>
-                            <p style="font-size:0.95rem;">Please return to VidRestore app to verify activation.</p>
-                        </div>
-                        <button class="btn btn-secondary" onclick="goToHome()" style="margin-top: 18px;">返回首页</button>
-                    `;
+                    hideInitialContent();
+                    document.getElementById('closed-box').style.display = 'block';
                 } else {
                     showError();
                 }
             }
         }
 
-        // ==================== 页面加载逻辑 ====================
+        // 页面加载后打开 Paddle
         document.addEventListener('DOMContentLoaded', () => {
             const transactionId = getTransactionId();
 
@@ -313,51 +302,42 @@
                 return;
             }
 
-            // 延迟一点打开 Paddle，让用户看到加载状态和警告文字
+            // 给用户一点时间看到警告文字
             setTimeout(() => {
                 if (!checkoutOpened) {
                     openCheckout(transactionId);
                 }
-            }, 650);
+            }, 700);
         });
 
-        // ==================== 语言切换（已修复 active 状态） ====================
+        // ==================== 语言切换（已修复） ====================
         function toggleLang() {
             const current = document.body.getAttribute('data-lang');
             const newLang = current === 'zh' ? 'en' : 'zh';
             document.body.setAttribute('data-lang', newLang);
             localStorage.setItem('preferredLang', newLang);
-
-            // 更新切换按钮的 active 样式
             updateLangToggleActive(newLang);
         }
 
         function updateLangToggleActive(lang) {
-            const zhSpan = document.querySelector('.toggle-zh');
-            const enSpan = document.querySelector('.toggle-en');
-            if (!zhSpan || !enSpan) return;
+            const zh = document.querySelector('.toggle-zh');
+            const en = document.querySelector('.toggle-en');
+            if (!zh || !en) return;
 
             if (lang === 'zh') {
-                zhSpan.classList.add('active');
-                enSpan.classList.remove('active');
+                zh.classList.add('active');
+                en.classList.remove('active');
             } else {
-                enSpan.classList.add('active');
-                zhSpan.classList.remove('active');
+                en.classList.add('active');
+                zh.classList.remove('active');
             }
         }
 
-        // 初始化语言 + active 状态
+        // 初始化语言
         document.addEventListener('DOMContentLoaded', () => {
             const savedLang = localStorage.getItem('preferredLang') || 'zh';
             document.body.setAttribute('data-lang', savedLang);
             updateLangToggleActive(savedLang);
-        });
-
-        // 额外防护
-        window.addEventListener('beforeunload', () => {
-            if (checkoutOpened && !paymentCompleted) {
-                console.log('用户在支付过程中关闭了页面');
-            }
         });
     </script>
 </body>
