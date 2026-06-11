@@ -56,6 +56,14 @@
             border-radius: 8px;
             margin-top: 20px;
         }
+        .success {
+            color: #00ff9d;
+            background: #1a2a1f;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            line-height: 1.7;
+        }
         .btn {
             display: inline-block;
             background: #00ff9d;
@@ -66,9 +74,18 @@
             text-decoration: none;
             font-weight: bold;
             margin-top: 20px;
+            cursor: pointer;
+            border: none;
         }
         .btn:hover {
             background: #00cc7a;
+        }
+        .btn-secondary {
+            background: #444;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #555;
         }
         .lang-toggle {
             position: absolute;
@@ -82,6 +99,7 @@
             cursor: pointer;
             font-size: 0.95rem;
         }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body data-lang="zh">
@@ -95,8 +113,8 @@
 
         <!-- 中文内容 -->
         <div class="lang-zh">
-            <h1>正在打开支付页面...</h1>
-            <div class="status">
+            <h1 id="title-zh">正在打开支付页面...</h1>
+            <div class="status" id="status-zh">
                 请稍候，Paddle 支付窗口即将弹出。<br>
                 如果长时间未响应，请刷新页面重试。
             </div>
@@ -104,14 +122,46 @@
 
         <!-- 英文内容 -->
         <div class="lang-en">
-            <h1>Opening Checkout...</h1>
-            <div class="status">
+            <h1 id="title-en">Opening Checkout...</h1>
+            <div class="status" id="status-en">
                 Please wait while we open the Paddle payment window.<br>
                 If nothing happens, please refresh the page.
             </div>
         </div>
 
         <div class="loading" id="loading"></div>
+
+        <!-- 成功状态 -->
+        <div id="success-box" class="success" style="display: none;">
+            <div class="lang-zh">
+                <h2 style="margin-top:0; color:#00ff9d;">✅ 支付成功！</h2>
+                <p>感谢您的支持！VidRestore 已为您激活终身版授权。</p>
+                <p style="font-size:0.95rem; color:#aaa;">请关闭此页面，返回 VidRestore 应用程序。<br>
+                应用会自动检测并更新授权状态（或点击应用内「验证支付」按钮）。</p>
+            </div>
+            <div class="lang-en">
+                <h2 style="margin-top:0; color:#00ff9d;">✅ Payment Successful!</h2>
+                <p>Thank you for your support! VidRestore lifetime license has been activated.</p>
+                <p style="font-size:0.95rem; color:#aaa;">Please close this tab and return to the VidRestore app.<br>
+                The app will automatically detect the new license (or click "Verify Payment" inside the app).</p>
+            </div>
+            <button class="btn" onclick="goToHome()">返回首页 / Return to Home</button>
+        </div>
+
+        <!-- 关闭/取消状态 -->
+        <div id="closed-box" class="error" style="display: none;">
+            <div class="lang-zh">
+                <p>支付窗口已关闭。</p>
+                <p style="font-size:0.95rem;">如果您已完成支付，请返回 VidRestore 应用并点击「我已支付 - 立即验证」。<br>
+                如果尚未支付，可返回应用重新发起。</p>
+            </div>
+            <div class="lang-en">
+                <p>Checkout window closed.</p>
+                <p style="font-size:0.95rem;">If you completed the payment, please return to VidRestore app and click "I have paid - Verify now".<br>
+                Otherwise you can try again from the app.</p>
+            </div>
+            <button class="btn btn-secondary" onclick="goToHome()">返回首页</button>
+        </div>
 
         <div id="error-box" class="error" style="display: none;">
             <div class="lang-zh">未检测到支付订单信息，请返回软件重新发起支付。</div>
@@ -124,10 +174,13 @@
     <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
     <script>
         // ==================== Paddle 初始化 ====================
-        // 请替换成你自己的 Client-side token
+        // TODO: 替换成你自己的 Client-side token（从 Paddle Dashboard 获取）
         Paddle.Initialize({
-            token: 'live_aeb63ceea37fde355ee1ccf6aef'   // ← 必须修改
+            token: 'live_aeb63ceea37fde355ee1ccf6aef'   // ← 必须修改为真实 token
         });
+
+        let checkoutOpened = false;
+        let paymentCompleted = false;
 
         function getTransactionId() {
             const params = new URLSearchParams(window.location.search);
@@ -137,19 +190,55 @@
         function showError() {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error-box').style.display = 'block';
+            document.getElementById('title-zh').textContent = '支付页面加载失败';
+            document.getElementById('title-en').textContent = 'Checkout failed to load';
+        }
+
+        function showSuccess() {
+            paymentCompleted = true;
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('success-box').style.display = 'block';
+            // 隐藏原始状态文字
+            document.querySelectorAll('.status').forEach(el => el.style.display = 'none');
+            document.getElementById('title-zh').textContent = '支付已完成';
+            document.getElementById('title-en').textContent = 'Payment completed';
+        }
+
+        function showClosed() {
+            if (paymentCompleted) return; // 已经成功就不显示关闭提示
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('closed-box').style.display = 'block';
+            document.querySelectorAll('.status').forEach(el => el.style.display = 'none');
+            document.getElementById('title-zh').textContent = '支付已取消';
+            document.getElementById('title-en').textContent = 'Payment cancelled';
+        }
+
+        function goToHome() {
+            window.location.href = '/';
         }
 
         function openCheckout(transactionId) {
             try {
+                checkoutOpened = true;
                 Paddle.Checkout.open({
                     transactionId: transactionId,
-                    // 可选：设置成功/关闭回调
-                    successCallback: () => {
-                        console.log('支付成功');
+                    successCallback: (data) => {
+                        console.log('✅ Paddle 支付成功回调', data);
+                        showSuccess();
+                        // 可选：几秒后自动跳转首页（给用户时间看成功提示）
+                        // setTimeout(() => { window.location.href = '/?payment=success'; }, 4000);
                     },
-                    closeCallback: () => {
-                        console.log('用户关闭支付窗口');
-                    }
+                    closeCallback: (data) => {
+                        console.log('Paddle 支付窗口关闭', data);
+                        // Paddle 在成功后也可能触发 closeCallback，依赖 successCallback 优先
+                        setTimeout(() => {
+                            if (!paymentCompleted) {
+                                showClosed();
+                            }
+                        }, 300);
+                    },
+                    // 可选：更多配置
+                    // settings: { displayMode: 'overlay' }
                 });
             } catch (e) {
                 console.error('打开支付窗口失败:', e);
@@ -166,10 +255,12 @@
                 return;
             }
 
-            // 延迟一点点打开支付窗口，让用户看到加载状态
+            // 延迟打开支付窗口，让用户看到加载状态
             setTimeout(() => {
-                openCheckout(transactionId);
-            }, 800);
+                if (!checkoutOpened) {
+                    openCheckout(transactionId);
+                }
+            }, 600);
         });
 
         // ==================== 语言切换 ====================
@@ -184,6 +275,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             const savedLang = localStorage.getItem('preferredLang') || 'zh';
             document.body.setAttribute('data-lang', savedLang);
+        });
+
+        // 额外防护：如果用户直接关闭页面或支付异常，记录日志
+        window.addEventListener('beforeunload', () => {
+            if (checkoutOpened && !paymentCompleted) {
+                console.log('用户在支付过程中关闭了页面');
+            }
         });
     </script>
 </body>
